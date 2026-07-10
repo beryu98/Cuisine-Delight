@@ -5,7 +5,6 @@ import com.mojang.math.Axis;
 import dev.xkmc.cuisinedelight.content.block.CuisineSkilletBlockEntity;
 import dev.xkmc.cuisinedelight.content.logic.CookTransformConfig;
 import dev.xkmc.cuisinedelight.content.logic.CookingData;
-import dev.xkmc.cuisinedelight.content.logic.IngredientConfig;
 import dev.xkmc.cuisinedelight.content.logic.transform.FluidTransform;
 import dev.xkmc.cuisinedelight.content.logic.transform.Stage;
 import net.minecraft.client.Minecraft;
@@ -27,16 +26,15 @@ public class CuisineSkilletRenderer implements BlockEntityRenderer<CuisineSkille
 		FluidRenderHelper helper = new FluidRenderHelper();
 		poseStack.pushPose();
 		poseStack.translate(0, -29 / 64f + fly * 16 / 32f, 0);
-		for (var entry : data.contents) {
-			ItemStack food = entry.getItem();
+		for (ItemStack food : data.contents) {
 			var handle = CookTransformConfig.get(food);
 			if (handle instanceof FluidTransform fluid) {
 				helper.addFluid(fluid);
 				continue;
 			}
-			ItemStack render = handle.renderStack(entry.getStage(data), food);
+			ItemStack render = handle.renderStack(data.isComplete() ? Stage.COOKED : Stage.RAW, food);
 
-			Random random = new Random(entry.seed());
+			Random random = new Random(i);
 			poseStack.translate(0, (fly * 4 + 1) / 32f, 0);
 			poseStack.pushPose();
 			poseStack.mulPose(Axis.YP.rotationDegrees(random.nextFloat() * 360f));
@@ -44,11 +42,6 @@ public class CuisineSkilletRenderer implements BlockEntityRenderer<CuisineSkille
 			poseStack.mulPose(Axis.YP.rotationDegrees(random.nextFloat() * 360f));
 			poseStack.mulPose(Axis.XP.rotationDegrees(90));
 			int itemLight = light;
-			var config = IngredientConfig.get().getEntry(food);
-			assert config != null;
-			boolean overcooked = entry.getStage(data) == Stage.OVERCOOKED;
-			boolean burnt = entry.getMaxStirTime(data) > config.stir_time;
-			itemLight = handle.lightAdjust(itemLight, overcooked, burnt);
 			renderer.renderStatic(render, ItemDisplayContext.GROUND, itemLight,
 					overlay, poseStack, buffer, Minecraft.getInstance().level, i++);
 			poseStack.popPose();
@@ -66,7 +59,6 @@ public class CuisineSkilletRenderer implements BlockEntityRenderer<CuisineSkille
 		if (data.contents.isEmpty()) return;
 		var level = Minecraft.getInstance().level;
 		if (level == null) return;
-		data.update(level.getGameTime());
 		poseStack.pushPose();
 		poseStack.translate(0.5, 0.5, 0.5);
 		float time = be.getStirPercent(pTick);

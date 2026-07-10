@@ -1,12 +1,11 @@
 package dev.xkmc.cuisinedelight.content.block;
 
 import dev.xkmc.cuisinedelight.content.item.CuisineSkilletItem;
+import dev.xkmc.cuisinedelight.content.logic.CookingData;
 import dev.xkmc.cuisinedelight.content.logic.IngredientConfig;
-import dev.xkmc.cuisinedelight.init.data.CDConfig;
 import dev.xkmc.cuisinedelight.init.data.LangData;
 import dev.xkmc.cuisinedelight.init.registrate.CDBlocks;
 import dev.xkmc.cuisinedelight.init.registrate.CDItems;
-import dev.xkmc.l2core.init.reg.ench.EnchHelper;
 import dev.xkmc.l2serial.util.Wrappers;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
@@ -17,7 +16,6 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -48,19 +46,15 @@ public class CuisineSkilletBlock extends SkilletBlock {
 					}
 					return ItemInteractionResult.FAIL;
 				}
-				if (be.cookingData.contents.size() >= CDConfig.SERVER.maxIngredient.get()) {
+				if (be.cookingData.contents.size() >= CookingData.MAX_INGREDIENTS) {
 					if (!level.isClientSide()) {
 						((ServerPlayer) player).sendSystemMessage(LangData.MSG_FULL.get(), true);
 					}
 					return ItemInteractionResult.FAIL;
 				}
 				if (!level.isClientSide) {
-					int count = 1 + EnchHelper.getLv(be.baseItem, Enchantments.EFFICIENCY);
-					if (be.slowCook()) {
-						be.cookingData.setSpeed(0.5f);
-					}
-					ItemStack add = heldStack.split(count);
-					be.cookingData.addItem(add, level.getGameTime());
+					ItemStack add = heldStack.split(1);
+					be.cookingData.addItem(add);
 					ItemStack remain = add.getCraftingRemainingItem();
 					remain.setCount(add.getCount());
 					player.getInventory().placeItemBackInInventory(remain);

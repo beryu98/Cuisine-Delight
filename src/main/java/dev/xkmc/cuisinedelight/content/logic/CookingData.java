@@ -1,139 +1,104 @@
 package dev.xkmc.cuisinedelight.content.logic;
 
-import dev.xkmc.cuisinedelight.content.logic.transform.Stage;
 import dev.xkmc.l2serial.serialization.marker.SerialClass;
 import dev.xkmc.l2serial.serialization.marker.SerialField;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
-import java.util.Random;
 
 @SerialClass
 public class CookingData {
 
-	@SerialField
-	private long lastActionTime;
+	public static final int MAX_INGREDIENTS = 3;
+	public static final int COMPLETE_TIME = 30 * 20;
+
+	public static final int WARNING_START = 86;
+	public static final int RED_START = 110;
+	public static final int RED_TIME = 126;
+
+	public static final int FLIP_REDUCTION = 5 * 20;
 
 	@SerialField
-	private float speed = 1;
+	public ArrayList<ItemStack> contents = new ArrayList<>();
 
 	@SerialField
-	public ArrayList<CookingEntry> contents = new ArrayList<>();
+	public boolean started = false;
 
-	public void update(long time) {
-		lastActionTime = time;
-	}
+	@SerialField
+	public int cookTicks = 0;
 
-	public void setSpeed(float speed) {
-		this.speed = speed;
-	}
+	@SerialField
+	public int dangerTicks = 0;
 
-	public void stir(long time, int reduce) {
-		update(time);
-		for (CookingEntry entry : contents) {
-			entry.stir(time, reduce);
+	@SerialField
+	public boolean failed = false;
+
+	public void addItem(ItemStack item) {
+		if (failed) {
+			started = false;
+			cookTicks = 0;
+			dangerTicks = 0;
+			failed = false;
+			contents.clear();
+		}
+		if (started || contents.size() >= MAX_INGREDIENTS) return;
+		ItemStack copy = item.copy();
+		copy.setCount(1);
+		contents.add(copy);
+		if (contents.size() >= MAX_INGREDIENTS) {
+			started = true;
 		}
 	}
 
-	public void addItem(ItemStack item, long time) {
-		update(time);
-		contents.add(new CookingEntry(item, time));
+	public void tick() {
+		if (!started || failed || isComplete()) return;
+		cookTicks++;
+		dangerTicks++;
+
+		if (dangerTicks >= RED_START) {
+			failed = true;
+			contents.clear();
+		}
 	}
 
-	@SerialClass
-	public static class CookingEntry {
+	public boolean canFlip() {
+		return started && !failed && !isComplete() && dangerTicks >= WARNING_START && dangerTicks < RED_START;
+	}
 
-		@SerialField
-		private ItemStack item;
+	public boolean flip() {
+		if (!canFlip()) return false;
+		dangerTicks = Math.max(0, dangerTicks - FLIP_REDUCTION);
+		cookTicks = Math.min(COMPLETE_TIME, cookTicks + FLIP_REDUCTION);
+		return true;
+	}
 
-		@SerialField
-		private long startTime;
+	public boolean isComplete() {
+		return started && cookTicks >= COMPLETE_TIME && !failed;
+	}
 
-		@SerialField
-		private long lastStirTime;
+	public float cookProgress() {
+		return Math.min(1, cookTicks / (float) COMPLETE_TIME);
+	}
 
-		@SerialField
-		private int maxStirTime;
-
-		@Deprecated
-		public CookingEntry() {
-
-		}
-
-		public CookingEntry(ItemStack item, long time) {
-			this.item = item;
-			this.startTime = time;
-			this.lastStirTime = time;
-			this.maxStirTime = 0;
-		}
-
-		public void stir(long time, int reduce) {
-			maxStirTime = Math.max(maxStirTime, (int) (time - lastStirTime));
-			lastStirTime = time + reduce;
-		}
-
-		public float getDuration(CookingData data, float partialTick) {
-			return (partialTick + data.lastActionTime - startTime) * data.speed;
-		}
-
-		public float timeSinceStir(CookingData data, float partialTick) {
-			return Math.max(0, partialTick + data.lastActionTime - lastStirTime) * data.speed;
-		}
-
-		public float getMaxStirTime(CookingData data) {
-			return maxStirTime * data.speed;
-		}
-
-		public ItemStack getItem() {
-			return item;
-		}
-
-		public long seed() {
-			return new Random(startTime).nextLong();
-		}
-
-		public Stage getStage(CookingData data) {
-			var config = IngredientConfig.get().getEntry(getItem());
-			assert config != null;
-			float time = getDuration(data, 0);
-			if (time < config.min_time) return Stage.RAW;
-			if (time < config.max_time) return Stage.COOKED;
-			return Stage.OVERCOOKED;
-		}
-
-		public Immutable immutable() {
-			return new Immutable(item, startTime, lastStirTime, maxStirTime);
-		}
-
-		public record Immutable(ItemStack item, long startTime, long lastStirTime, int maxStirTime) {
-
-			public CookingEntry mutable() {
-				var ans = new CookingEntry();
-				ans.item = item;
-				ans.startTime = startTime;
-				ans.lastStirTime = lastStirTime;
-				ans.maxStirTime = maxStirTime;
-				return ans;
-			}
-
-		}
-
+	public float dangerProgress() {
+		return Math.min(1, dangerTicks / (float) RED_TIME);
 	}
 
 	public Record immutable() {
-		ArrayList<CookingEntry.Immutable> list = new ArrayList<>();
-		for (var e : contents) list.add(e.immutable());
-		return new Record(lastActionTime, speed, list);
+		ArrayList<ItemStack> list = new ArrayList<>();
+		for (var e : contents) list.add(e.copy());
+		return new Record(list, started, cookTicks, dangerTicks, failed);
 	}
 
-	public record Record(long lastActionTime, float speed, ArrayList<CookingEntry.Immutable> contents) {
+	public record Record(ArrayList<ItemStack> contents, boolean started, int cookTicks, int dangerTicks, boolean failed) {
 
 		public CookingData mutable() {
 			var ans = new CookingData();
-			ans.lastActionTime = lastActionTime;
-			ans.speed = speed;
-			for (var e : contents)
-				ans.contents.add(e.mutable());
+			for (var e : contents) ans.contents.add(e.copy());
+			ans.started = started;
+			ans.cookTicks = cookTicks;
+			ans.dangerTicks = dangerTicks;
+			ans.failed = failed;
 			return ans;
 		}
 

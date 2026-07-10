@@ -22,7 +22,6 @@ import net.minecraft.util.Unit;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.neoforged.neoforge.client.model.generators.ModelFile;
-import net.neoforged.neoforge.common.Tags;
 
 @MethodsReturnNonnullByDefault
 public class CDItems {
@@ -56,11 +55,10 @@ public class CDItems {
 		SKILLET = CuisineDelight.REGISTRATE.item("cuisine_skillet", p -> new CuisineSkilletItem(CDBlocks.SKILLET.get(), p.stacksTo(1)))
 				.model((ctx, pvd) -> pvd.getBuilder(ctx.getName()).parent(new ModelFile.UncheckedModelFile("builtin/entity")))
 				.clientExtension(() -> () -> SkilletBEWLR.EXTENSIONS)
-				.tag(Tags.Items.ENCHANTABLES)
 				.setData(ProviderType.LANG, NonNullBiConsumer.noop()).register();
 
 		SPATULA = CuisineDelight.REGISTRATE.item("spatula", p -> new SpatulaItem(p.stacksTo(1)))
-				.tag(TagGen.UTENSILS, Tags.Items.ENCHANTABLES)
+				.tag(TagGen.UTENSILS)
 				.model((ctx, pvd) -> pvd.handheld(ctx)).defaultLang().register();
 
 		PLATE = CuisineDelight.REGISTRATE.item("plate", PlateItem::new)

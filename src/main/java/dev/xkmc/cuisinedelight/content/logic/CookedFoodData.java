@@ -28,28 +28,19 @@ public record CookedFoodData(int total, int size, int nutrition, int score,
 		ArrayList<Entry> entries = new ArrayList<>();
 		int size = 0;
 		int nutrition = 0;
-		float penalty = 0;
-		for (var e : data.contents) {
-			var config = IngredientConfig.get().getEntry(e.getItem());
+		for (var stack : data.contents) {
+			var config = IngredientConfig.get().getEntry(stack);
 			if (config == null) continue;
-			boolean raw = config.min_time > e.getDuration(data, 0);
-			boolean overcooked = config.max_time < e.getDuration(data, 0);
-			boolean burnt = e.getMaxStirTime(data) > config.stir_time;
-			float badness = 0;
-			if (raw) badness += config.raw_penalty;
-			if (overcooked || burnt) badness += config.overcook_penalty;
-			int itemSize = config.size * e.getItem().getCount();
-			penalty += itemSize * badness;
+			int itemSize = config.size * stack.getCount();
 			size += itemSize;
 			nutrition += config.nutrition * itemSize;
-			entries.add(new Entry(e.getItem(), itemSize, burnt, raw, overcooked));
+			entries.add(new Entry(stack, itemSize, false, false, false));
 			if (config.type != FoodType.NONE)
 				types.add(config.type);
 		}
-		float goodness = size == 0 ? 0 : Mth.clamp(1 - penalty / size, 0, 1);
 		return new CookedFoodData(size, size,
-				size == 0 ? 0 : Math.round(goodness * nutrition / size),
-				Math.round(goodness * 100),
+				size == 0 ? 0 : Math.round(1f * nutrition / size),
+				size == 0 ? 0 : 100,
 				types, entries);
 	}
 

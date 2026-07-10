@@ -57,7 +57,6 @@ public class SkilletBEWLR extends BlockEntityWithoutLevelRenderer {
 		renderer.render(stack, type, false, poseStack, bufferSource, light, overlay, model);
 		CookingData data = CuisineSkilletItem.getData(stack);
 		if (data != null && !data.contents.isEmpty()) {
-			data.update(level.getGameTime());
 			poseStack.pushPose();
 			model.applyTransform(type, poseStack, false);
 			float time = 0;

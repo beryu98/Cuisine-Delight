@@ -3,15 +3,15 @@ package dev.xkmc.cuisinedelight.content.item;
 import dev.xkmc.cuisinedelight.content.block.CuisineSkilletBlockEntity;
 import dev.xkmc.cuisinedelight.content.logic.CookingData;
 import dev.xkmc.cuisinedelight.content.logic.IngredientConfig;
-import dev.xkmc.cuisinedelight.init.data.CDConfig;
+import dev.xkmc.cuisinedelight.content.recipe.SimpleCuisineRecipeStorage;
 import dev.xkmc.cuisinedelight.init.data.LangData;
 import dev.xkmc.cuisinedelight.init.data.TagRef;
 import dev.xkmc.cuisinedelight.init.registrate.CDItems;
-import dev.xkmc.l2core.init.reg.ench.EnchHelper;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
@@ -24,7 +24,6 @@ import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.enchantment.Enchantment;
-import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.Block;
@@ -52,8 +51,6 @@ public class CuisineSkilletItem extends SkilletItem {
 	}
 
 	public static boolean canUse(ItemStack stack, Player player, Level level) {
-		if (getData(stack) != null) return true;
-		if (EnchHelper.getLv(stack, Enchantments.FIRE_ASPECT) > 0) return true;
 		return isPlayerNearHeatSource(player, level);
 	}
 
@@ -63,7 +60,7 @@ public class CuisineSkilletItem extends SkilletItem {
 		double y = pos.y();
 		double z = pos.z() + 0.5D;
 		level.playLocalSound(x, y, z, event, SoundSource.BLOCKS,
-				0.4F, level.random.nextFloat() * 0.2F + 0.9F, false);
+			0.4F, level.random.nextFloat() * 0.2F + 0.9F, false);
 	}
 
 	public CuisineSkilletItem(Block block, Properties properties) {
@@ -80,7 +77,7 @@ public class CuisineSkilletItem extends SkilletItem {
 			return InteractionResultHolder.fail(skilletStack);
 		}
 		CookingData data = getData(skilletStack);
-		if (data != null && data.contents.size() >= CDConfig.SERVER.maxIngredient.get()) {
+		if (data != null && data.contents.size() >= CookingData.MAX_INGREDIENTS) {
 			if (!level.isClientSide()) {
 				((ServerPlayer) player).sendSystemMessage(LangData.MSG_FULL.get(), true);
 			}
@@ -93,17 +90,11 @@ public class CuisineSkilletItem extends SkilletItem {
 			IngredientConfig.IngredientEntry entry = IngredientConfig.get().getEntry(otherStack);
 			if (entry != null) {
 				if (!level.isClientSide()) {
-					long time = level.getGameTime();
 					if (data == null) {
 						data = new CookingData();
 					}
-					int amount = 1 + EnchHelper.getLv(skilletStack, Enchantments.EFFICIENCY);
-					int speed = EnchHelper.getLv(skilletStack, Enchantments.FIRE_ASPECT);
-					if (speed == 1) {
-						data.setSpeed(0.5f);
-					}
-					ItemStack toAdd = otherStack.split(amount);
-					data.addItem(toAdd, time);
+					ItemStack toAdd = otherStack.split(1);
+					data.addItem(toAdd);
 					ItemStack remain = toAdd.getCraftingRemainingItem();
 					remain.setCount(toAdd.getCount());
 					player.getInventory().placeItemBackInInventory(remain);
@@ -126,13 +117,31 @@ public class CuisineSkilletItem extends SkilletItem {
 
 	@Override
 	public void inventoryTick(ItemStack stack, Level level, Entity entity, int slot, boolean selected) {
-		if (level.isClientSide() && (entity instanceof Player player) &&
-				(player.getMainHandItem() == stack || player.getOffhandItem() == stack)) {
-			if (level.getRandom().nextInt(10) == 0) {
-				if (canUse(stack, player, level) && getData(stack) != null) {
-					playSound(player, level, ModSounds.BLOCK_SKILLET_SIZZLE.get());
+		if (!(entity instanceof Player player) ||
+			(player.getMainHandItem() != stack && player.getOffhandItem() != stack)) {
+			return;
+		}
+		CookingData data = getData(stack);
+		if (data == null) return;
+		if (canUse(stack, player, level)) {
+			boolean wasFailed = data.failed;
+			boolean wasComplete = data.isComplete();
+			data.tick();
 
-				}
+			if (!level.isClientSide() && data.isComplete()) {
+				ItemStack foodStack = SimpleCuisineRecipeStorage.get((ServerLevel) level).find(data.contents);
+				player.getInventory().placeItemBackInInventory(foodStack);
+				setData(stack, null);
+				return;
+			}
+
+			if (wasFailed != data.failed || wasComplete != data.isComplete() || data.started) {
+				setData(stack, data);
+			}
+		}
+		if (level.isClientSide() && level.getRandom().nextInt(10) == 0) {
+			if (canUse(stack, player, level) && !data.contents.isEmpty()) {
+				playSound(player, level, ModSounds.BLOCK_SKILLET_SIZZLE.get());
 			}
 		}
 	}
@@ -187,19 +196,12 @@ public class CuisineSkilletItem extends SkilletItem {
 
 	@Override
 	public boolean supportsEnchantment(ItemStack stack, Holder<Enchantment> enchantment) {
-		if (enchantment.is(Enchantments.FIRE_ASPECT)) return true;
-		if (enchantment.is(Enchantments.EFFICIENCY)) return true;
 		return super.supportsEnchantment(stack, enchantment);
 	}
 
 	@Override
 	public void appendHoverText(ItemStack stack, TooltipContext level, List<Component> list, TooltipFlag flag) {
-		if (Screen.hasShiftDown()) {
-			list.add(LangData.ENCH_FIRE.get());
-			list.add(LangData.ENCH_EFFICIENCY.get());
-		} else {
-			list.add(LangData.ENCH_SHIFT.get());
-		}
+		list.add(LangData.ENCH_SHIFT.get());
 	}
 
 }
