@@ -10,6 +10,7 @@ import dev.xkmc.cuisinedelight.init.registrate.CDItems;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -33,7 +34,6 @@ import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 import vectorwing.farmersdelight.common.item.SkilletItem;
 import vectorwing.farmersdelight.common.registry.ModSounds;
-import vectorwing.farmersdelight.common.tag.ModTags;
 
 import java.util.List;
 
@@ -87,8 +87,10 @@ public class CuisineSkilletItem extends SkilletItem {
 		ItemStack otherStack = player.getItemInHand(otherHand);
 
 		if (!otherStack.isEmpty()) {
-			IngredientConfig.IngredientEntry entry = IngredientConfig.get().getEntry(otherStack);
-			if (entry != null) {
+			boolean isIngredient = IngredientConfig.get().getEntry(otherStack) != null;
+			boolean isFood = otherStack.has(DataComponents.FOOD);
+
+			if (isIngredient || isFood) {
 				if (!level.isClientSide()) {
 					if (data == null) {
 						data = new CookingData();
@@ -129,7 +131,7 @@ public class CuisineSkilletItem extends SkilletItem {
 			data.tick();
 
 			if (!level.isClientSide() && data.isComplete()) {
-				ItemStack foodStack = SimpleCuisineRecipeStorage.get((ServerLevel) level).find(data.contents);
+				ItemStack foodStack = SimpleCuisineRecipeStorage.INSTANCE.find(data.contents);
 				player.getInventory().placeItemBackInInventory(foodStack);
 				setData(stack, null);
 				return;
@@ -164,11 +166,8 @@ public class CuisineSkilletItem extends SkilletItem {
 		}
 	}
 
-	//------
-
 	@Override
 	public void releaseUsing(ItemStack stack, Level level, LivingEntity entity, int timeLeft) {
-
 	}
 
 	@Override
@@ -203,5 +202,4 @@ public class CuisineSkilletItem extends SkilletItem {
 	public void appendHoverText(ItemStack stack, TooltipContext level, List<Component> list, TooltipFlag flag) {
 		list.add(LangData.ENCH_SHIFT.get());
 	}
-
 }

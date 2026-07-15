@@ -1,5 +1,6 @@
 package dev.xkmc.cuisinedelight.init.registrate;
 
+import dev.xkmc.cuisinedelight.content.menu.RecipeAddMenu;
 import dev.xkmc.cuisinedelight.content.recipe.BaseCuisineRecipe;
 import dev.xkmc.cuisinedelight.content.recipe.CuisineRecipeContainer;
 import dev.xkmc.cuisinedelight.content.recipe.FoodTypeIngredient;
@@ -13,6 +14,8 @@ import dev.xkmc.l2core.init.reg.simple.Val;
 import dev.xkmc.l2core.serial.recipe.BaseRecipe;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.world.flag.FeatureFlags;
+import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.storage.loot.functions.LootItemFunctionType;
@@ -21,6 +24,7 @@ public class CDMisc {
 
 	private static final IngReg ING_REG = IngReg.of(CuisineDelight.REG);
 	public static final IngVal<FoodTypeIngredient> ING_FOOD_TYPE = ING_REG.reg("food_type", FoodTypeIngredient.class);
+	private static final SR<MenuType<?>> MT = SR.of(CuisineDelight.REG, BuiltInRegistries.MENU);
 
 	private static final SR<LootItemFunctionType<?>> LIF = SR.of(CuisineDelight.REG, Registries.LOOT_FUNCTION_TYPE);
 	public static Val<LootItemFunctionType<CopySkilletFunction>> LFT_COPY_SKILLET = LIF
@@ -34,6 +38,9 @@ public class CDMisc {
 
 	public static final Val<BaseRecipe.RecType<PlateCuisineRecipe, BaseCuisineRecipe<?>, CuisineRecipeContainer>> PLATE_CUISINE =
 			RS.reg("plate_cuisine", () -> new BaseRecipe.RecType<>(PlateCuisineRecipe.class, RT_CUISINE));
+
+	public static final Val<MenuType<RecipeAddMenu>> RECIPE_ADD_MENU =
+		MT.reg("recipe_add", () -> new MenuType<>(RecipeAddMenu::new, FeatureFlags.DEFAULT_FLAGS));
 
 	public static void register() {
 	}

@@ -8,6 +8,8 @@ import dev.xkmc.cuisinedelight.init.data.*;
 import dev.xkmc.cuisinedelight.init.registrate.CDBlocks;
 import dev.xkmc.cuisinedelight.init.registrate.CDItems;
 import dev.xkmc.cuisinedelight.init.registrate.CDMisc;
+import dev.xkmc.cuisinedelight.network.CuisineBookPayload;
+import dev.xkmc.cuisinedelight.network.SaveRecipePayload;
 import dev.xkmc.l2core.init.reg.registrate.L2Registrate;
 import dev.xkmc.l2core.init.reg.simple.Reg;
 import dev.xkmc.l2core.serial.config.ConfigTypeEntry;
@@ -21,6 +23,8 @@ import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.neoforge.data.event.GatherDataEvent;
 import net.neoforged.neoforge.data.loading.DatagenModLoader;
 import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
+import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import vectorwing.farmersdelight.FarmersDelight;
@@ -76,4 +80,28 @@ public class CuisineDelight {
 		event.getGenerator().addProvider(event.includeServer(), new CDConfigGen(event.getGenerator(), event.getLookupProvider()));
 	}
 
+	@SubscribeEvent
+	public static void registerNetworking(final RegisterPayloadHandlersEvent event) {
+		final PayloadRegistrar registrar = event.registrar(MODID);
+
+		registrar.playToClient(
+			CuisineBookPayload.TYPE,
+			CuisineBookPayload.CODEC,
+			(payload, context) -> {
+				context.enqueueWork(() -> CuisineDelightClient.openBookScreen(payload));
+			}
+		);
+
+		registrar.playToServer(
+			SaveRecipePayload.TYPE,
+			SaveRecipePayload.CODEC,
+			(payload, context) -> {
+				context.enqueueWork(() -> {
+					if (context.player().containerMenu instanceof dev.xkmc.cuisinedelight.content.menu.RecipeAddMenu menu) {
+						menu.saveRecipe();
+					}
+				});
+			}
+		);
+	}
 }

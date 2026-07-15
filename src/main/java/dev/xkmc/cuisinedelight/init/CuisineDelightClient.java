@@ -3,12 +3,16 @@ package dev.xkmc.cuisinedelight.init;
 import dev.xkmc.cuisinedelight.content.client.CookingOverlay;
 import dev.xkmc.cuisinedelight.content.client.FoodItemDecorationRenderer;
 import dev.xkmc.cuisinedelight.content.client.SkilletBEWLR;
+import dev.xkmc.cuisinedelight.content.client.screen.CuisineBookScreen;
+import dev.xkmc.cuisinedelight.content.menu.RecipeAddScreen;
+import dev.xkmc.cuisinedelight.init.registrate.CDMisc;
 import dev.xkmc.cuisinedelight.init.registrate.PlateFood;
+import dev.xkmc.cuisinedelight.network.CuisineBookPayload;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.model.ModelResourceLocation;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.*;
 import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
 
@@ -24,7 +28,8 @@ public class CuisineDelightClient {
 	}
 
 	@SubscribeEvent
-	public static void clientSetup(FMLClientSetupEvent event) {
+	public static void registerScreens(RegisterMenuScreensEvent event) {
+		event.register(CDMisc.RECIPE_ADD_MENU.get(), RecipeAddScreen::new);
 	}
 
 	@SubscribeEvent
@@ -54,4 +59,7 @@ public class CuisineDelightClient {
 	public static void onModelBake(ModelEvent.BakingCompleted event) {
 	}
 
+	public static void openBookScreen(CuisineBookPayload payload) {
+		Minecraft.getInstance().setScreen(new CuisineBookScreen(payload.recipes()));
+	}
 }

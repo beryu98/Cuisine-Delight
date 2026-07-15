@@ -8,6 +8,7 @@ import dev.xkmc.cuisinedelight.init.registrate.CDBlocks;
 import dev.xkmc.cuisinedelight.init.registrate.CDItems;
 import dev.xkmc.l2serial.util.Wrappers;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
@@ -38,8 +39,11 @@ public class CuisineSkilletBlock extends SkilletBlock {
 		BlockEntity tileEntity = level.getBlockEntity(pos);
 		if (tileEntity instanceof CuisineSkilletBlockEntity be) {
 			ItemStack heldStack = player.getItemInHand(hand);
-			var config = IngredientConfig.get().getEntry(heldStack);
-			if (config != null) {
+
+			boolean isIngredient = IngredientConfig.get().getEntry(heldStack) != null;
+			boolean isFood = heldStack.has(DataComponents.FOOD);
+
+			if (isIngredient || isFood) {
 				if (!be.canCook()) {
 					if (player instanceof ServerPlayer serverPlayer) {
 						serverPlayer.sendSystemMessage(LangData.MSG_NO_HEAT.get(), true);
@@ -98,7 +102,7 @@ public class CuisineSkilletBlock extends SkilletBlock {
 				double z = pos.getZ() + 0.5D;
 				if (rand.nextInt(10) == 0) {
 					level.playLocalSound(x, y, z, ModSounds.BLOCK_SKILLET_SIZZLE.get(), SoundSource.BLOCKS,
-							0.4F, rand.nextFloat() * 0.2F + 0.9F, false);
+						0.4F, rand.nextFloat() * 0.2F + 0.9F, false);
 				}
 			}
 		}
@@ -119,5 +123,4 @@ public class CuisineSkilletBlock extends SkilletBlock {
 	private static BlockEntityTicker<CuisineSkilletBlockEntity> getTicker() {
 		return (level, pos, state, be) -> be.tick(level, pos, state);
 	}
-
 }

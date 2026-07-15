@@ -4,10 +4,7 @@ import com.tterrag.registrate.providers.ProviderType;
 import com.tterrag.registrate.util.entry.ItemEntry;
 import com.tterrag.registrate.util.nullness.NonNullBiConsumer;
 import dev.xkmc.cuisinedelight.content.client.SkilletBEWLR;
-import dev.xkmc.cuisinedelight.content.item.BaseFoodItem;
-import dev.xkmc.cuisinedelight.content.item.CuisineSkilletItem;
-import dev.xkmc.cuisinedelight.content.item.PlateItem;
-import dev.xkmc.cuisinedelight.content.item.SpatulaItem;
+import dev.xkmc.cuisinedelight.content.item.*;
 import dev.xkmc.cuisinedelight.content.logic.CookedFoodData;
 import dev.xkmc.cuisinedelight.content.logic.CookingData;
 import dev.xkmc.cuisinedelight.content.logic.JEIDisplayInfo;
@@ -33,12 +30,14 @@ public class CDItems {
 	public static final ItemEntry<CuisineSkilletItem> SKILLET;
 	public static final ItemEntry<SpatulaItem> SPATULA;
 	public static final ItemEntry<PlateItem> PLATE;
+	public static final ItemEntry<CuisineRecipeBookItem> RECIPE_BOOK;
 
 	private static final DCReg DC = DCReg.of(CuisineDelight.REG);
 	public static final DCVal<CookingData.Record> COOKING = DC.reg("cooking", CookingData.Record.class, true);
 	public static final DCVal<CookedFoodData> COOKED = DC.reg("cooked", CookedFoodData.class, true);
 	public static final DCVal<JEIDisplayInfo> DISPLAY = DC.reg("display", JEIDisplayInfo.class, true);
 	public static final DCVal<Unit> INGREDIENT = DC.unit("ingredient");
+
 
 	public static final VarItemInit<BaseFoodItem> FOOD;
 
@@ -63,6 +62,12 @@ public class CDItems {
 
 		PLATE = CuisineDelight.REGISTRATE.item("plate", PlateItem::new)
 				.tag(TagGen.UTENSILS).defaultModel().defaultLang().register();
+
+		RECIPE_BOOK = CuisineDelight.REGISTRATE.item("recipe_book", CuisineRecipeBookItem::new)
+			.model((ctx, pvd) -> pvd.getBuilder(ctx.getName()).parent(new net.neoforged.neoforge.client.model.generators.ModelFile.UncheckedModelFile("minecraft:item/book")))
+			.tab(TAB.getKey())
+			.lang("Cuisine Recipe Book")
+			.register();
 
 		PlateFood.register();
 	}

@@ -12,11 +12,11 @@ public class CookingData {
 	public static final int MAX_INGREDIENTS = 3;
 	public static final int COMPLETE_TIME = 30 * 20;
 
-	public static final int WARNING_START = 86;
-	public static final int RED_START = 110;
-	public static final int RED_TIME = 126;
+	public static final int WARNING_START = 70;
+	public static final int RED_START = 90;
+	public static final int RED_TIME = 100;
 
-	public static final int FLIP_REDUCTION = 5 * 20;
+	public static final int FLIP_REDUCTION = 3 * 20;
 
 	@SerialField
 	public ArrayList<ItemStack> contents = new ArrayList<>();
